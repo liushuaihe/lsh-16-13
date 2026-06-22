@@ -123,6 +123,7 @@ export async function initDB(): Promise<Database> {
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH)
     db = new SQL.Database(fileBuffer)
+    migrateDB(db)
   } else {
     db = new SQL.Database()
     db.run(SCHEMA)
@@ -133,6 +134,71 @@ export async function initDB(): Promise<Database> {
   }
 
   return db
+}
+
+function migrateDB(database: Database): void {
+  try {
+    const userCols = database.prepare("PRAGMA table_info(users)")
+    const columns: string[] = []
+    while (userCols.step()) {
+      columns.push(userCols.getAsObject().name as string)
+    }
+    userCols.free()
+
+    if (!columns.includes("creditScore")) {
+      database.run("ALTER TABLE users ADD COLUMN creditScore INTEGER NOT NULL DEFAULT 100")
+    }
+
+    const tables = database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_credit_stats'")
+    const hasCreditTable = tables.step()
+    tables.free()
+
+    if (!hasCreditTable) {
+      database.run(`
+        CREATE TABLE IF NOT EXISTS user_credit_stats (
+          userId TEXT PRIMARY KEY REFERENCES users(id),
+          totalOrders INTEGER NOT NULL DEFAULT 0,
+          cancelledOrders INTEGER NOT NULL DEFAULT 0,
+          filledOrders INTEGER NOT NULL DEFAULT 0,
+          violationCooldownUntil INTEGER NOT NULL DEFAULT 0,
+          lastCancelledAt INTEGER NOT NULL DEFAULT 0,
+          cancelStreak INTEGER NOT NULL DEFAULT 0
+        )
+      `)
+
+      const users = database.prepare("SELECT id FROM users")
+      const userIds: string[] = []
+      while (users.step()) {
+        userIds.push(users.getAsObject().id as string)
+      }
+      users.free()
+
+      for (const uid of userIds) {
+        database.run(
+          "INSERT OR IGNORE INTO user_credit_stats (userId, totalOrders, cancelledOrders, filledOrders, violationCooldownUntil, lastCancelledAt, cancelStreak) VALUES (?, 0, 0, 0, 0, 0, 0)",
+          [uid]
+        )
+      }
+    }
+
+    const existingUsers = database.prepare("SELECT id FROM users")
+    const allUserIds: string[] = []
+    while (existingUsers.step()) {
+      allUserIds.push(existingUsers.getAsObject().id as string)
+    }
+    existingUsers.free()
+
+    for (const uid of allUserIds) {
+      database.run(
+        "INSERT OR IGNORE INTO user_credit_stats (userId, totalOrders, cancelledOrders, filledOrders, violationCooldownUntil, lastCancelledAt, cancelStreak) VALUES (?, 0, 0, 0, 0, 0, 0)",
+        [uid]
+      )
+    }
+
+    saveToFile(database)
+  } catch (e) {
+    console.error("Migration error:", e)
+  }
 }
 
 export function getDB(): Database {

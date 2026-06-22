@@ -50,9 +50,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user = get().user
     if (!user) return
     const assets = await api.getAssets(user.id)
-    set({ creditInfo: assets.credit })
-    if (get().user) {
-      set({ user: { ...get().user!, creditScore: assets.credit.score } })
+    if (assets?.credit) {
+      set({ creditInfo: assets.credit })
+      set({ user: { ...user, creditScore: assets.credit.score } })
     }
   },
 

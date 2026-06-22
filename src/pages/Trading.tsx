@@ -57,6 +57,7 @@ export default function Trading() {
         setMessage({ type: "success", text: `挂单成功！${result.trades.length > 0 ? `撮合成交 ${result.trades.length} 笔` : "等待撮合"}` })
         setPrice("")
         refreshBalance()
+        refreshCredit()
         fetchData()
       }
     } catch (err) {
@@ -210,7 +211,7 @@ export default function Trading() {
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || !price || !quantity || (creditInfo !== null && creditInfo.activeOrderCount >= creditInfo.maxActiveOrders) || (creditInfo !== null && creditInfo.violationCooldownUntil > Date.now())}
+                  disabled={submitting || !price || !quantity || creditInfo?.activeOrderCount >= creditInfo?.maxActiveOrders || creditInfo?.violationCooldownUntil > Date.now()}
                   className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 ${
                     orderType === "buy"
                       ? "bg-up text-white hover:bg-up/90"

@@ -23,7 +23,20 @@ export function getUserAssets(userId: string) {
     [userId]
   )
 
-  const creditInfo = credit.getCreditInfo(userId)
+  let creditInfo
+  try {
+    creditInfo = credit.getCreditInfo(userId)
+  } catch (e) {
+    creditInfo = {
+      score: 100,
+      grade: "A" as const,
+      maxActiveOrders: 30,
+      activeOrderCount: 0,
+      cancelRate: 0,
+      fillRate: 0,
+      violationCooldownUntil: 0,
+    }
+  }
 
   return {
     balance: users[0].balance,

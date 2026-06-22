@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<string, { text: string; color: string }> = {
 }
 
 export default function Assets() {
-  const { user, refreshBalance } = useAppStore()
+  const { user, refreshBalance, refreshCredit } = useAppStore()
   const [assets, setAssets] = useState<UserAssets | null>(null)
   const [depositAmount, setDepositAmount] = useState("")
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({})
@@ -67,6 +67,7 @@ export default function Assets() {
       }
       fetchAssets()
       refreshBalance()
+      refreshCredit()
     } catch {}
   }
 
@@ -112,50 +113,50 @@ export default function Assets() {
 
         <div className="bg-secondary rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Shield size={18} style={{ color: CREDIT_GRADE_COLORS[assets.credit.grade] }} />
+            <Shield size={18} style={{ color: CREDIT_GRADE_COLORS[assets.credit?.grade ?? "A"] }} />
             <h2 className="text-sm text-white">交易信用</h2>
           </div>
           <div className="flex items-center gap-4">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center border-2"
               style={{
-                borderColor: CREDIT_GRADE_COLORS[assets.credit.grade],
-                backgroundColor: CREDIT_GRADE_BG[assets.credit.grade],
+                borderColor: CREDIT_GRADE_COLORS[assets.credit?.grade ?? "A"],
+                backgroundColor: CREDIT_GRADE_BG[assets.credit?.grade ?? "A"],
               }}
             >
               <span
                 className="font-display text-2xl font-bold"
-                style={{ color: CREDIT_GRADE_COLORS[assets.credit.grade] }}
+                style={{ color: CREDIT_GRADE_COLORS[assets.credit?.grade ?? "A"] }}
               >
-                {assets.credit.grade}
+                {assets.credit?.grade ?? "A"}
               </span>
             </div>
             <div className="flex-1 space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-dimmed">信用分</span>
-                <span className="text-white font-display">{assets.credit.score}</span>
+                <span className="text-white font-display">{assets.credit?.score ?? 100}</span>
               </div>
               <div className="w-full h-2 bg-card rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${assets.credit.score}%`,
-                    backgroundColor: CREDIT_GRADE_COLORS[assets.credit.grade],
+                    width: `${assets.credit?.score ?? 100}%`,
+                    backgroundColor: CREDIT_GRADE_COLORS[assets.credit?.grade ?? "A"],
                   }}
                 />
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-dimmed">挂单上限</span>
                 <span className="text-white">
-                  {assets.credit.activeOrderCount} / {assets.credit.maxActiveOrders}
+                  {assets.credit?.activeOrderCount ?? 0} / {assets.credit?.maxActiveOrders ?? 30}
                 </span>
               </div>
             </div>
           </div>
-          {assets.credit.violationCooldownUntil > Date.now() && (
+          {assets.credit?.violationCooldownUntil && assets.credit.violationCooldownUntil > Date.now() && (
             <div className="mt-3 flex items-center gap-2 text-xs text-down bg-down-dim rounded-lg px-3 py-2">
               <AlertTriangle size={14} />
-              <span>违规冷却中，{Math.ceil((assets.credit.violationCooldownUntil - Date.now()) / (60 * 60 * 1000))} 小时后解除</span>
+              <span>违规冷却中，{Math.ceil((assets.credit!.violationCooldownUntil - Date.now()) / (60 * 60 * 1000))} 小时后解除</span>
             </div>
           )}
         </div>
@@ -168,17 +169,17 @@ export default function Assets() {
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <span className="text-dimmed">成交率</span>
-              <span className="text-up">{assets.credit.fillRate.toFixed(1)}%</span>
+              <span className="text-up">{(assets.credit?.fillRate ?? 0).toFixed(1)}%</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-dimmed">撤单率</span>
-              <span className={assets.credit.cancelRate > 30 ? "text-down" : "text-white"}>
-                {assets.credit.cancelRate.toFixed(1)}%
+              <span className={(assets.credit?.cancelRate ?? 0) > 30 ? "text-down" : "text-white"}>
+                {(assets.credit?.cancelRate ?? 0).toFixed(1)}%
               </span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-dimmed">活跃挂单</span>
-              <span className="text-white">{assets.credit.activeOrderCount} 单</span>
+              <span className="text-white">{assets.credit?.activeOrderCount ?? 0} 单</span>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-border text-[10px] text-dimmed space-y-1">

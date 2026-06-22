@@ -69,8 +69,15 @@ export function getCreditInfo(userId: string): CreditInfo {
   )
   const activeOrderCount = activeOrders[0]?.count ?? 0
 
-  const cancelRate = stats.totalOrders > 0 ? (stats.cancelledOrders / stats.totalOrders) * 100 : 0
-  const fillRate = stats.totalOrders > 0 ? (stats.filledOrders / stats.totalOrders) * 100 : 0
+  const settledOrders = query<{ count: number }>(
+    "SELECT COUNT(*) as count FROM orders WHERE userId = ? AND status = 'SETTLED'",
+    [userId]
+  )
+  const settledOrderCount = settledOrders[0]?.count ?? 0
+
+  const completedOrders = settledOrderCount + stats.cancelledOrders
+  const cancelRate = completedOrders > 0 ? (stats.cancelledOrders / completedOrders) * 100 : 0
+  const fillRate = completedOrders > 0 ? (settledOrderCount / completedOrders) * 100 : 0
 
   return {
     score: stats.creditScore,
